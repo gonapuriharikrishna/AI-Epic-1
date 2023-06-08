@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Weather, Distance, and Map</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+  <script>
+    var map;
+    var originMarker;
+    var destinationMarker;
+
+    function initMap() {
+      var mapOptions = {
+        zoom: 10,
+        center: { lat: 0, lng: 0 } 
+      };
+      map = new google.maps.Map(document.getElementById("map"), mapOptions);
+    }
+
+    $(document).ready(function() {
+      $("#weatherBtn").click(function() {
+        var city = $("#cityInput").val();
+        var apiKey = "548b3d88e6e1d6784ecb5915e170f744";
+        var weatherUrl = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiKey;
+
+        $.getJSON(weatherUrl, function(data) {
+          var weatherDescription = data.weather[0].description;
+          var temperature = Math.round(data.main.temp - 273.15); 
+          var humidity = data.main.humidity;
+
+          var weatherResult = "Weather: " + weatherDescription + "<br>Temperature: " + temperature + "°C<br>Humidity: " + humidity + "%";
+          $("#weatherResult").html(weatherResult);
+        });
+      });
+
+      $("#distanceBtn").click(function() {
+        var origin = $("#originInput").val();
+        var destination = $("#destinationInput").val();
+        var apiKey = "548b3d88e6e1d6784ecb5915e170f744";
+        var distanceUrl = "https://api.openweathermap.org/data/2.5/weather?q=" + origin + "&appid=" + apiKey;
+        var distanceUrl2 = "https://api.openweathermap.org/data/2.5/weather?q=" + destination + "&appid=" + apiKey;
+
+        var apiKey = 'YOUR_API_KEY';
+        var apiUrl = 'https://maps.googleapis.com/maps/api/distancematrix/json?units=metric';
+        var url = apiUrl + '&origins=' + encodeURIComponent(origin) + '&destinations=' + encodeURIComponent(destination) + '&key=' + apiKey;
+
+        var distance;
+        var duration;
+        fetch(url)
+            .then(function(response) {
+            return response.json();
+            })
+            .then(function(data) {
+            distance = data.rows[0].elements[0].distance.text;
+            duration = data.rows[0].elements[0].duration.text;
+
+            console.log('Distance: ' + distance);
+            console.log('Duration: ' + duration);
+            })
+            .catch(function(error) {
+            console.log('Error:', error);
+            });
+
+        $.getJSON(distanceUrl, function(originData) {
+          var originWeatherDescription = originData.weather[0].description;
+          var originTemperature = Math.round(originData.main.temp - 273.15); // Convert temperature to Celsius
+          var originHumidity = originData.main.humidity;
+
+
+          var result =  "Origin Weather:" +originWeatherDescription + "<br>Origin Temperature: " + originTemperature + "°C<br>Origin Humidity: " + originHumidity + "%";
+
+          $("#distanceResult").html(result);
+        });
+
+        var destinationWeatherDescription ; 
+        var destinationTemperature; 
+        var destinationHumidity ; 
+        var result;
+        $.getJSON(distanceUrl2, function(originData) {
+
+          // Retrieve weather conditions for destination location
+          destinationWeatherDescription = originData.weather[0].description; // Retrieve weather conditions for destination location
+          destinationTemperature = Math.round(originData.main.temp - 273.15); // Retrieve temperature for destination location
+          destinationHumidity = originData.main.humidity; // Retrieve humidity for destination location
+          result = "";
+
+          // Perform calculations using time, distance, and weather data
+          if(destinationWeatherDescription=="rainy"){
+            result  += "<br> The weather is rainy will take extra time<br>"
+          }
+
+          result +=  "<br><br>Destination Weather: " + destinationWeatherDescription + "<br>Destination Temperature: " + destinationTemperature + "°C<br>Destination Humidity: " + destinationHumidity + "%";
+
+          $("#distanceResult2").html(result);
+        });
+        // Perform calculations using time, distance, and weather data
+        var res = "";
+        if(destinationWeatherDescription=="rainy"){
+            res  += "<br><br>Estimated time: 2X" + duration + "hours<br>Distance:"+ distance +" km<br><br>"+"<br> The weather is rainy will take extra time<br>"
+            $("#TimeResult").html(res);
+        }
+        else{
+            res  += "<br><br>Estimated time:" + duration + "hours<br>Distance:"+ distance +" km<br><br>";
+            $("#TimeResult").html(res);
+        }
+
+        // Display origin and destination markers on the map
+        var geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: origin }, function(results, status) {
+          if (status == google.maps.GeocoderStatus.OK) {
+            var originLatLng = results[0].geometry.location;
+            if (originMarker) {
+              originMarker.setMap(null);
+            }
+            originMarker = new google.maps.Marker({
+              position: originLatLng,
+              map: map,
+              title: "Origin"
+            });
+          }
+        });
+
+        geocoder.geocode({ address: destination }, function(results, status) {
+          if (status == google.maps.GeocoderStatus.OK) {
+            var destinationLatLng = results[0].geometry.location;
+            if (destinationMarker) {
+              destinationMarker.setMap(null);
+            }
+            destinationMarker = new google.maps.Marker({
+              position: destinationLatLng,
+              map: map,
+              title: "Destination"
+            });
+          }
+        });
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Weather, Distance, and Map</h1>
+  
+  <h2>Weather Conditions</h2>
+  <input type="text" id="cityInput" placeholder="Enter city name">
+  <button id="weatherBtn">Get Weather</button>
+  <div id="weatherResult"></div>
+  
+  <h2>Distance and Weather Conditions</h2>
+  <input type="text" id="originInput" placeholder="Enter origin location">
+  <input type="text" id="destinationInput" placeholder="Enter destination location">
+  <button id="distanceBtn">Calculate</button>
+  <div id="distanceResult"></div>
+  <div id="distanceResult2"></div>
+  <div id="TimeResult"></div>
+  <h2>Map</h2>
+  <div id="map" style="width: 100%; height: 400px;"></div>
+
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
+</body>
+</html>
